@@ -6,18 +6,18 @@
 
 ## Introduction
 
-Orion Proxy is a high performance and memeory safe implementation of popular [Envoy Proxy](https://www.envoyproxy.io/). Orion Proxy is implemented in Rust using high-quality open source components. 
+Orion Proxy is a high performance and memory safe implementation of popular [Envoy Proxy](https://www.envoyproxy.io/). Orion Proxy is implemented in Rust using high-quality open source components. 
 
 ### Key features
 
 **Memory Safety**
 
-Rust programming language allows to avoid a whole lot of bugs related to memory memory management and data racess making Orion Proxy a very robust and secure application.  
+Rust programming language allows to avoid a whole lot of bugs related to memory management and data races making Orion Proxy a very robust and secure application.  
 
 
 **Performance**
 
-Orion Proxy offers 2x-4x better throughput and latency than Envoy Proxy. Refer to [Performance](docs/performance/performance.md) to see performance figures and how tested Orion Proxy for more details.  
+Orion Proxy offers 2x-4x better throughput and latency than Envoy Proxy. Refer to [Performance](docs/performance/performance.md) to see performance figures and for more details how we tested Orion Proxy .  
 
 
 **Compatibility**
@@ -30,17 +30,17 @@ Orion Proxy configuration is generated from Envoy's xDS protobuf definitions. Or
 
 ### Building
 ```console
-git clone https://github.com/kmesh-net/orion-proxy
-cd orion-proxy
+git clone https://github.com/kmesh-net/orion
+cd orion
 git submodule init
-git update --force
+git submodule update --force
 cargo build
 ```
 
 
 ### Running
 ```console
-cargo run --bin orion -- --config orion-proxy/conf/orion-runtime.yaml
+cargo run --bin orion -- --config orion/conf/orion-runtime.yaml
 ```
 
 <!-- ## Contributing -->

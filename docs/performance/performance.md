@@ -38,7 +38,7 @@
   - In-memory direct response of 12B size
   - 17 cores assigned to the application on NUMA1
   - 7 cores assigned to IRQ handling on NUMA1
-  - 2.6M RPS à hard-limit of the server
+  - 2.6M RPS a hard-limit of the server
   - Measures #connections established upstream
 
 * DUT (Proxy):

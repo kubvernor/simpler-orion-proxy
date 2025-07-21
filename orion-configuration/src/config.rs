@@ -57,12 +57,12 @@ impl Config {
         let runtime = self.runtime.update_from_env_and_options(opt);
         let max_cpus = num_cpus::get();
         if runtime.num_cpus() > max_cpus {
-            tracing::warn!(max_cpus, NG_GATEWAY_CORES = runtime.num_cpus(), "Requested more cores than available CPUs");
+            tracing::warn!(max_cpus, ORION_GATEWAY_CORES = runtime.num_cpus(), "Requested more cores than available CPUs");
         }
         if runtime.num_runtimes() > runtime.num_cpus() {
             tracing::warn!(
                 runtime.num_cpus,
-                NG_GATEWAY_RUNTIMES = runtime.num_runtimes(),
+                ORION_GATEWAY_RUNTIMES = runtime.num_runtimes(),
                 "Requested more runtimes than cores"
             );
         }

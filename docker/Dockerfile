@@ -23,10 +23,6 @@ COPY rustfmt.toml ./
 COPY Cargo.toml ./
 COPY Cargo.lock ./
 
-RUN <<EOF
-apt update
-apt install -y protobuf-compiler
-EOF
 
 RUN cargo build --release
 
@@ -37,13 +33,11 @@ FROM debian:bookworm-slim
 RUN <<EOF
 apt update
 apt upgrade -y
-apt install -y ca-certificates libssl-dev libssl3
+apt install -y ca-certificates libssl3
 EOF
 
 COPY ./docker/start_proxy.sh ./start_proxy.sh
 
 COPY --from=orion-builder /tmp/orion/target/release/orion /orion
-# ENV RUST_BACKTRACE=full
-# ENV RUST_LOG=info,rusoto_core=info,swir=debug,rusoto_dynamodb=info
 EXPOSE 8080 8000 50051
 ENTRYPOINT ["/start_proxy.sh"]
