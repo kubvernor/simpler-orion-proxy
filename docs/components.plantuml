@@ -1,0 +1,59 @@
+@startuml
+skinparam dpi 150
+skinparam nodesep 100
+skinparam ranksep 20
+
+node "XdsRuntime" {
+	[XdsConfigurationHandler]
+}
+
+
+[XdsConfigurationHandler] -down- ListenerConfigurationChange
+[XdsConfigurationHandler] -down-- RouteConfigurationChange
+[XdsConfigurationHandler] -right-- ClusterConfigurationChange
+
+[ClusterMap]
+
+() "clusters::" as clusters
+[XdsConfigurationHandler] -- clusters
+clusters -- [ClusterMap]
+
+() "clusters_manager::" as clusters_manager
+[ClusterMap] -- clusters_manager
+
+node "HealthCheckRuntime" {
+	[HealthCheckManager]
+}
+
+ClusterConfigurationChange -- [HealthCheckManager]
+clusters_manager -- [HealthCheckManager]
+
+[XdsConfigurationHandler] -- EndpointHealthUpdate
+EndpointHealthUpdate -- [HealthCheckManager]
+
+node "ProxyRuntime" {
+	() "RouteConfigurationChange" as RCL
+
+	[ListenersManager]
+	[Listener]
+
+	[ListenersManager] -- TlsContextChange
+	[ListenersManager] -- RCL
+
+	TlsContextChange -- [Listener]
+	RCL -- [Listener]
+
+
+	[HttpConnectionManager]
+
+	[Listener] -- RouteConfiguration
+	RouteConfiguration -- [HttpConnectionManager]
+
+	[ClusterMap] -- get_http_connection
+	get_http_connection -- [HttpConnectionManager]
+}
+
+ListenerConfigurationChange -down- [ListenersManager]
+RouteConfigurationChange -down- [ListenersManager]
+
+@enduml

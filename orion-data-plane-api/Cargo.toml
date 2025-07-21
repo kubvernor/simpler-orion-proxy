@@ -1,0 +1,24 @@
+[package]
+authors = ["x30050848 <xieliwei5@huawei.com>"]
+description = "Orion proxy dynamic control-planes adapt to Envoy xDS library"
+edition = "2021"
+license = "MIT"
+name = "orion-data-plane-api"
+version = "0.1.9"
+
+[dependencies]
+anyhow                         = "1"
+async-stream                   = "^0.3.6"
+envoy-data-plane-api.workspace = true
+futures.workspace              = true
+serde.workspace                = true
+serde_yaml.workspace           = true
+thiserror.workspace            = true
+tokio.workspace                = true
+tokio-stream.workspace         = true
+tokio-util                     = "0.7.13"
+tower.workspace                = true
+tracing.workspace              = true
+
+[dev-dependencies]
+hyper-util.workspace = true

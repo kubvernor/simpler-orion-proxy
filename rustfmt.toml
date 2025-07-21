@@ -1,0 +1,8 @@
+use_small_heuristics = "MAX"
+# In the match branch, if blocks are included, add commas (,) to separate them.
+match_block_trailing_comma = true
+newline_style = "Auto"
+# Do not merge multiple Derive macros into the same line
+merge_derives = false
+# Set line length
+max_width = 120

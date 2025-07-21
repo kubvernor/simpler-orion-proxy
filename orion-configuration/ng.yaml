@@ -1,0 +1,36 @@
+static_resources:
+  listeners:
+  - name: listener-1
+    address: 127.0.0.1:8000
+    filter_chains:
+    - name: filter_chain_http
+      filter_chain_match:
+        destination_port: 8000
+      terminal_filter: !Http
+        codec_type: Auto
+        route_specifier:
+          name: local_route
+          virtual_hosts:
+          - name: local_service
+            domains:
+            - '*'
+            routes:
+            - route_match:
+                Prefix: /dr
+                case_sensitive: true
+              DirectResponse:
+                status: 200
+                InlineString: This is a direct response
+            - route_match:
+                Prefix: /
+                case_sensitive: true
+              Route:
+                cluster_specifier: cluster1
+                cluster_not_found_response_code: 503
+            request_headers_to_add:
+            - header:
+                key: my-custom-header
+                value: value
+              append_action: AppendIfExistsOrAdd
+              keep_empty_value: false
+    with_tls_inspector: true
