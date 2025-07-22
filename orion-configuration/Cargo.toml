@@ -1,0 +1,42 @@
+[package]
+edition = "2021"
+name = "orion-configuration"
+publish = ["rust-inhuawei-com"]
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+base64                        = "0.22.1"
+base64-serde                  = "0.7.0"
+bytes.workspace               = true
+clap                          = { version = "4.4.8", features = ["derive"] }
+compact_str.workspace         = true
+envoy-data-plane-api          = { workspace = true, optional = true }
+exponential-backoff.workspace = true
+http.workspace                = true
+http-serde-ext                = "1.0.2"
+humantime-serde               = "1.1.1"
+ipnet                         = { version = "2.9", features = ["serde"] }
+num_cpus.workspace            = true
+orion-data-plane-api          = { workspace = true, optional = true }
+orion-error.workspace         = true
+regex.workspace               = true
+serde                         = { workspace = true, features = ["rc"] }
+serde_path_to_error           = "0.1.16"
+serde_regex                   = "1.1.0"
+serde_yaml.workspace          = true
+thiserror.workspace           = true
+tracing.workspace             = true
+tracing-subscriber            = { workspace = true, features = ["env-filter", "std"] }
+url.workspace                 = true
+
+[dev-dependencies]
+tracing-test.workspace = true
+
+[features]
+default = ["envoy-conversions"]
+envoy-conversions = ["dep:orion-data-plane-api"]
+
+[lints]
+workspace = true
