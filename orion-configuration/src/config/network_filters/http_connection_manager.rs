@@ -330,6 +330,8 @@ impl FromStr for RetryOn {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Route {
     #[serde(skip_serializing_if = "is_default", default)]
+    pub name: String,
+    #[serde(skip_serializing_if = "is_default", default)]
     pub response_header_modifier: HeaderModifier,
     #[serde(skip_serializing_if = "Vec::is_empty", default = "Default::default")]
     pub request_headers_to_add: Vec<HeaderValueOption>,
@@ -712,17 +714,25 @@ mod envoy_conversions {
                 .transpose()
                 .map_err(|_| GenericError::from_msg("failed to convert into Duration"))
                 .with_node("request_timeout")?;
-            let mut http_filters: Vec<SupportedEnvoyHttpFilter> = convert_non_empty_vec!(http_filters)?;
-            match http_filters.pop() {
-                Some(SupportedEnvoyHttpFilter { filter: SupportedEnvoyFilter::Router(rtr), name, disabled: false }) => {
-                    Router::try_from(rtr).with_node(name)
-                },
-                Some(SupportedEnvoyHttpFilter { filter: SupportedEnvoyFilter::Router(_), name, disabled: true }) => {
-                    Err(GenericError::from_msg("router cannot be disabled").with_node(name))
-                },
-                _ => Err(GenericError::from_msg("final filter of the chain has to be a router")),
-            }
-            .with_node("http_filters")?;
+            let mut http_filters: Vec<SupportedEnvoyHttpFilter> = convert_vec!(http_filters)?;
+            if http_filters.is_empty() {
+                return Err(GenericError::from_msg("http_filters cannot be empty").with_node("http_filters"));
+            } else {
+                match http_filters.pop() {
+                    Some(SupportedEnvoyHttpFilter {
+                        filter: SupportedEnvoyFilter::Router(rtr),
+                        name,
+                        disabled: false,
+                    }) => Router::try_from(rtr).with_node(name),
+                    Some(SupportedEnvoyHttpFilter {
+                        filter: SupportedEnvoyFilter::Router(_),
+                        name,
+                        disabled: true,
+                    }) => Err(GenericError::from_msg("router cannot be disabled").with_node(name)),
+                    _ => Err(GenericError::from_msg("final filter of the chain has to be a router")),
+                }
+                .with_node("http_filters")?;
+            };
 
             let http_filters = convert_vec!(http_filters).with_node("http_filters")?;
 
@@ -1074,7 +1084,6 @@ mod envoy_conversions {
                 action,
             } = envoy;
             unsupported_field!(
-                name,
                 // r#match,
                 metadata,
                 decorator,
@@ -1120,6 +1129,7 @@ mod envoy_conversions {
             .with_node("typed_per_filter_config")?;
             let response_header_modifier = HeaderModifier::new(response_headers_to_remove, response_headers_to_add);
             Ok(Self {
+                name: name.clone(),
                 route_match,
                 action,
                 typed_per_filter_config,
