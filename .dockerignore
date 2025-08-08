@@ -69,7 +69,7 @@ temp/
 *.tar.gz
 *.zip
 *.rar
-*.csv
+# *.csv # Uncomment if you have large CSV data files you want to exclude from the build context.
 *.bak
 *.backup
 
