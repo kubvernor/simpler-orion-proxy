@@ -717,22 +717,17 @@ mod envoy_conversions {
             let mut http_filters: Vec<SupportedEnvoyHttpFilter> = convert_vec!(http_filters)?;
             if http_filters.is_empty() {
                 return Err(GenericError::from_msg("http_filters cannot be empty").with_node("http_filters"));
-            } else {
-                match http_filters.pop() {
-                    Some(SupportedEnvoyHttpFilter {
-                        filter: SupportedEnvoyFilter::Router(rtr),
-                        name,
-                        disabled: false,
-                    }) => Router::try_from(rtr).with_node(name),
-                    Some(SupportedEnvoyHttpFilter {
-                        filter: SupportedEnvoyFilter::Router(_),
-                        name,
-                        disabled: true,
-                    }) => Err(GenericError::from_msg("router cannot be disabled").with_node(name)),
-                    _ => Err(GenericError::from_msg("final filter of the chain has to be a router")),
-                }
-                .with_node("http_filters")?;
             };
+            match http_filters.pop() {
+                Some(SupportedEnvoyHttpFilter { filter: SupportedEnvoyFilter::Router(rtr), name, disabled: false }) => {
+                    Router::try_from(rtr).with_node(name)
+                },
+                Some(SupportedEnvoyHttpFilter { filter: SupportedEnvoyFilter::Router(_), name, disabled: true }) => {
+                    Err(GenericError::from_msg("router cannot be disabled").with_node(name))
+                },
+                _ => Err(GenericError::from_msg("final filter of the chain has to be a router")),
+            }
+            .with_node("http_filters")?;
 
             let http_filters = convert_vec!(http_filters).with_node("http_filters")?;
 
