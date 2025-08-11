@@ -1121,7 +1121,7 @@ mod envoy_conversions {
             .with_node("typed_per_filter_config")?;
             let response_header_modifier = HeaderModifier::new(response_headers_to_remove, response_headers_to_add);
             Ok(Self {
-                name: name.clone(),
+                name,
                 route_match,
                 action,
                 typed_per_filter_config,

@@ -21,9 +21,9 @@
 use std::net::SocketAddr;
 
 use futures::Stream;
+use orion_data_plane_api::envoy_data_plane_api::envoy;
 use orion_data_plane_api::envoy_data_plane_api::{
     envoy::{
-        self,
         config::{
             cluster::v3::{
                 cluster::{ClusterDiscoveryType, DiscoveryType, LbPolicy},
