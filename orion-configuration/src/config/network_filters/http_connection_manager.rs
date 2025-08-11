@@ -715,9 +715,6 @@ mod envoy_conversions {
                 .map_err(|_| GenericError::from_msg("failed to convert into Duration"))
                 .with_node("request_timeout")?;
             let mut http_filters: Vec<SupportedEnvoyHttpFilter> = convert_non_empty_vec!(http_filters)?;
-            if http_filters.is_empty() {
-                return Err(GenericError::from_msg("http_filters cannot be empty").with_node("http_filters"));
-            };
             match http_filters.pop() {
                 Some(SupportedEnvoyHttpFilter { filter: SupportedEnvoyFilter::Router(rtr), name, disabled: false }) => {
                     Router::try_from(rtr).with_node(name)
