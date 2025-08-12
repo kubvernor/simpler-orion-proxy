@@ -330,6 +330,8 @@ impl FromStr for RetryOn {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Route {
     #[serde(skip_serializing_if = "is_default", default)]
+    pub name: String,
+    #[serde(skip_serializing_if = "is_default", default)]
     pub response_header_modifier: HeaderModifier,
     #[serde(skip_serializing_if = "Vec::is_empty", default = "Default::default")]
     pub request_headers_to_add: Vec<HeaderValueOption>,
@@ -1074,7 +1076,6 @@ mod envoy_conversions {
                 action,
             } = envoy;
             unsupported_field!(
-                name,
                 // r#match,
                 metadata,
                 decorator,
@@ -1120,6 +1121,7 @@ mod envoy_conversions {
             .with_node("typed_per_filter_config")?;
             let response_header_modifier = HeaderModifier::new(response_headers_to_remove, response_headers_to_add);
             Ok(Self {
+                name,
                 route_match,
                 action,
                 typed_per_filter_config,
