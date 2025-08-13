@@ -21,10 +21,10 @@
 pub use crate::config::network_filters::network_rbac::Action;
 use crate::config::{common::*, core::StringMatcher};
 use http::{HeaderMap, HeaderName, Method, Request, Response, Uri};
-use serde::{de::Visitor, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::Visitor};
 use std::str::FromStr;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum HeaderNames {
     Method,
     Path,
@@ -52,7 +52,7 @@ impl<'de> Deserialize<'de> for HeaderNames {
         D: serde::Deserializer<'de>,
     {
         struct StrVisitor;
-        impl<'de> Visitor<'de> for StrVisitor {
+        impl Visitor<'_> for StrVisitor {
             type Value = HeaderNames;
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("`str`")
@@ -94,7 +94,7 @@ impl FromStr for HeaderNames {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
 pub struct HeaderMatcher {
     #[serde(rename = "name")]
     pub header_name: HeaderNames,
@@ -342,10 +342,10 @@ mod envoy_conversions {
     use super::{HeaderMatcher, HeaderNames};
     use crate::config::{
         common::*,
-        core::{regex_from_envoy, StringMatcher, StringMatcherPattern},
+        core::{StringMatcher, StringMatcherPattern, regex_from_envoy},
     };
     use orion_data_plane_api::envoy_data_plane_api::envoy::config::route::v3::{
-        header_matcher::HeaderMatchSpecifier as EnvoyHeaderMatchSpecifier, HeaderMatcher as EnvoyHeaderMatcher,
+        HeaderMatcher as EnvoyHeaderMatcher, header_matcher::HeaderMatchSpecifier as EnvoyHeaderMatchSpecifier,
     };
     use std::str::FromStr;
 

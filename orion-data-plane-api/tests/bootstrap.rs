@@ -1,12 +1,14 @@
-use envoy_data_plane_api::envoy::config::bootstrap::v3::Bootstrap;
-use envoy_data_plane_api::envoy::config::core::v3::socket_address::PortSpecifier;
-use envoy_data_plane_api::envoy::config::core::v3::{address, Address, SocketAddress};
-use envoy_data_plane_api::envoy::config::endpoint::v3::lb_endpoint::HostIdentifier;
-use orion_data_plane_api::bootstrap_loader::bootstrap::{BootstrapLoader, BootstrapResolver, XdsConfig, XdsType};
-use orion_data_plane_api::decode::from_yaml;
-use orion_data_plane_api::xds::model::TypeUrl;
-use std::collections::HashSet;
-use std::path::PathBuf;
+use envoy_data_plane_api::envoy::config::{
+    bootstrap::v3::Bootstrap,
+    core::v3::{Address, SocketAddress, address, socket_address::PortSpecifier},
+    endpoint::v3::lb_endpoint::HostIdentifier,
+};
+use orion_data_plane_api::{
+    bootstrap_loader::bootstrap::{BootstrapLoader, BootstrapResolver, XdsConfig, XdsType},
+    decode::from_yaml,
+    xds::model::TypeUrl,
+};
+use std::{collections::HashSet, path::PathBuf};
 
 #[test]
 fn read_static_resource() {
@@ -67,7 +69,7 @@ fn read_dynamic_resource() {
                 ipv4_compat: false,
                 port_specifier: Some(PortSpecifier::PortValue(5678)),
                 resolver_name: String::new(),
-                network_namespace_filepath: String::new(),
+                network_namespace_filepath: String::new()
             }
         )
     );
@@ -133,7 +135,7 @@ static_resources:
                 ipv4_compat: false,
                 port_specifier: Some(PortSpecifier::PortValue(5679)),
                 resolver_name: String::new(),
-                network_namespace_filepath: String::new(),
+                network_namespace_filepath: String::new()
             }
         )
     );
@@ -271,7 +273,7 @@ static_resources:
                 ipv4_compat: false,
                 port_specifier: Some(PortSpecifier::PortValue(5678)),
                 resolver_name: String::new(),
-                network_namespace_filepath: String::new(),
+                network_namespace_filepath: String::new()
             }
         )
     );
@@ -286,7 +288,7 @@ static_resources:
                 ipv4_compat: false,
                 port_specifier: Some(PortSpecifier::PortValue(5677)),
                 resolver_name: String::new(),
-                network_namespace_filepath: String::new(),
+                network_namespace_filepath: String::new()
             }
         )
     );
@@ -301,7 +303,7 @@ static_resources:
                 ipv4_compat: false,
                 port_specifier: Some(PortSpecifier::PortValue(5679)),
                 resolver_name: String::new(),
-                network_namespace_filepath: String::new(),
+                network_namespace_filepath: String::new()
             }
         )
     );

@@ -22,6 +22,7 @@
 use orion_error::Error;
 pub(crate) type BoxedError = Box<dyn std::error::Error + Send + Sync>;
 
+#[allow(clippy::wildcard_imports, clippy::too_many_lines)]
 pub mod config;
 pub mod options;
 
@@ -52,14 +53,14 @@ mod tests {
         use orion_data_plane_api::envoy_data_plane_api::{
             envoy::{
                 config::core::v3::{
+                    ApiConfigSource, ApiVersion, ConfigSource, GrpcService,
                     api_config_source::ApiType::Grpc,
                     config_source::ConfigSourceSpecifier,
                     grpc_service::{EnvoyGrpc, TargetSpecifier},
-                    ApiConfigSource, ApiVersion, ConfigSource, GrpcService,
                 },
                 extensions::filters::network::http_connection_manager::v3::{
-                    http_connection_manager::RouteSpecifier, http_filter::ConfigType,
                     HttpConnectionManager as EnvoyHttpConnectionManager, HttpFilter, Rds,
+                    http_connection_manager::RouteSpecifier, http_filter::ConfigType,
                 },
             },
             google::protobuf::Any,
@@ -74,7 +75,7 @@ mod tests {
                 name: "http-router".to_owned(),
                 config_type: Some(ConfigType::TypedConfig(Any {
                     type_url: "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router".to_owned(),
-                    value: vec![].into(),
+                    value: vec![],
                 })),
                 ..Default::default()
             }],

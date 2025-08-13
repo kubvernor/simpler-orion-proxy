@@ -18,11 +18,9 @@
 //
 //
 
-use orion_configuration::config::{
-    cluster::Cluster, cluster::ClusterLoadAssignment, common::GenericError, listener::Listener,
-    network_filters::http_connection_manager::RouteConfiguration, secret::Secret,
-};
-use orion_data_plane_api::envoy_data_plane_api::{
+use core::result::Result::Err;
+
+use envoy_data_plane_api::{
     envoy::{
         config::{
             cluster::v3::Cluster as EnvoyCluster, endpoint::v3::ClusterLoadAssignment as EnvoyClusterLoadAssignment,
@@ -34,6 +32,10 @@ use orion_data_plane_api::envoy_data_plane_api::{
     prost,
     prost::Message,
     tonic,
+};
+use orion_configuration::config::{
+    Cluster, GenericError, Listener, cluster::ClusterLoadAssignment,
+    network_filters::http_connection_manager::RouteConfiguration, secret::Secret,
 };
 use serde::Deserialize;
 use std::{
@@ -48,14 +50,14 @@ pub type ResourceVersion = String;
 
 #[derive(Debug)]
 pub enum XdsResourceUpdate {
-    Update(ResourceId, XdsResourcePayload),
+    Update(ResourceId, XdsResourcePayload, ResourceVersion),
     Remove(ResourceId, TypeUrl),
 }
 
 impl XdsResourceUpdate {
     pub fn id(&self) -> ResourceId {
         match self {
-            XdsResourceUpdate::Update(id, _) | XdsResourceUpdate::Remove(id, _) => id.to_string(),
+            XdsResourceUpdate::Update(id, _, _) | XdsResourceUpdate::Remove(id, _) => id.to_string(),
         }
     }
 }

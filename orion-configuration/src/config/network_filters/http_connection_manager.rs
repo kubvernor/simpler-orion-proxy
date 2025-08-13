@@ -18,21 +18,35 @@
 //
 //
 
-pub mod header_modifer;
-use header_modifer::{HeaderModifier, HeaderValueOption};
 pub mod header_matcher;
-use header_matcher::HeaderMatcher;
-pub mod route;
-use route::{Action, RouteMatch};
+pub mod header_modifer;
 pub mod http_filters;
-use http_filters::{FilterOverride, HttpFilter};
+pub mod route;
 
-use crate::config::common::*;
 use compact_str::CompactString;
 use exponential_backoff::Backoff;
+use header_matcher::HeaderMatcher;
+use header_modifer::{HeaderModifier, HeaderValueOption};
 use http::{HeaderName, HeaderValue, StatusCode};
+use http_filters::{FilterOverride, HttpFilter};
+use route::{Action, RouteMatch};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr, time::Duration};
+
+use crate::config::{
+    common::*,
+    network_filters::{access_log::AccessLog, tracing::Tracing},
+};
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+pub struct XffSettings {
+    #[serde(skip_serializing_if = "std::ops::Not::not", default)]
+    pub use_remote_address: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not", default)]
+    pub skip_xff_append: bool,
+    #[serde(default)]
+    pub xff_num_trusted_hops: u32,
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct HttpConnectionManager {
@@ -42,7 +56,20 @@ pub struct HttpConnectionManager {
     pub request_timeout: Option<Duration>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub http_filters: Vec<HttpFilter>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub enabled_upgrades: Vec<UpgradeType>,
     pub route_specifier: RouteSpecifier,
+    #[serde(skip_serializing_if = "Vec::is_empty", default = "Default::default")]
+    pub access_log: Vec<AccessLog>,
+    #[serde(flatten)]
+    pub xff_settings: XffSettings,
+    #[serde(skip_serializing_if = "std::ops::Not::not", default)]
+    pub generate_request_id: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not", default)]
+    pub preserve_external_request_id: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not", default)]
+    pub always_set_request_id_in_response: bool,
+    pub tracing: Option<Tracing>,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -53,6 +80,14 @@ pub enum CodecType {
     Http1,
     #[serde(rename = "HTTP2")]
     Http2,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum UpgradeType {
+    #[serde(rename = "websocket")]
+    Websocket,
+    #[serde(rename = "connect")]
+    Connect,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -214,7 +249,7 @@ impl MatchHost {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub struct VirtualHost {
     pub name: CompactString,
     pub domains: Vec<MatchHost>,
@@ -340,11 +375,16 @@ pub struct Route {
     pub request_headers_to_remove: Vec<HeaderName>,
     #[serde(rename = "match")]
     pub route_match: RouteMatch,
-    //todo(hayley): fix this field. Is it used correctly? key is name in higher level filter. value is overwrite (append-overwrite?)
     #[serde(skip_serializing_if = "HashMap::is_empty", default = "Default::default")]
     pub typed_per_filter_config: std::collections::HashMap<CompactString, FilterOverride>,
     #[serde(flatten)]
     pub action: Action,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct UpgradeConfig {
+    upgrade_type: String,
+    enabled: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -365,6 +405,7 @@ pub enum ConfigSourceSpecifier {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use std::str::FromStr;
 
@@ -532,16 +573,17 @@ mod tests {
 mod envoy_conversions {
     #![allow(deprecated)]
     use super::{
+        CodecType, ConfigSource, ConfigSourceSpecifier, HttpConnectionManager, RdsSpecifier, RetryBackoff, RetryOn,
+        RetryPolicy, Route, RouteConfiguration, RouteSpecifier, UpgradeType, VirtualHost, XffSettings,
         header_modifer::HeaderModifier,
         http_filters::{
-            router::Router, FilterConfigOverride, FilterOverride, HttpFilter, HttpFilterType, SupportedEnvoyFilter,
-            SupportedEnvoyHttpFilter,
+            FilterConfigOverride, FilterOverride, HttpFilter, HttpFilterType, SupportedEnvoyFilter,
+            SupportedEnvoyHttpFilter, router::Router,
         },
-        CodecType, ConfigSource, ConfigSourceSpecifier, HttpConnectionManager, RdsSpecifier, RetryBackoff, RetryOn,
-        RetryPolicy, Route, RouteConfiguration, RouteSpecifier, VirtualHost,
     };
     use crate::config::{
         common::*,
+        network_filters::access_log::AccessLog,
         util::{duration_from_envoy, http_status_from},
     };
     use compact_str::CompactString;
@@ -549,23 +591,23 @@ mod envoy_conversions {
     use orion_data_plane_api::envoy_data_plane_api::envoy::{
         config::{
             core::v3::{
-                config_source::ConfigSourceSpecifier as EnvoyConfigSourceSpecifier, AggregatedConfigSource,
-                ConfigSource as EnvoyConfigSource,
+                AggregatedConfigSource, ConfigSource as EnvoyConfigSource,
+                config_source::ConfigSourceSpecifier as EnvoyConfigSourceSpecifier,
             },
             route::v3::{
-                retry_policy::RetryBackOff as EnvoyRetryBackoff, RetryPolicy as EnvoyRetryPolicy, Route as EnvoyRoute,
-                RouteConfiguration as EnvoyRouteConfiguration, VirtualHost as EnvoyVirtualHost,
+                RetryPolicy as EnvoyRetryPolicy, Route as EnvoyRoute, RouteConfiguration as EnvoyRouteConfiguration,
+                VirtualHost as EnvoyVirtualHost, retry_policy::RetryBackOff as EnvoyRetryBackoff,
             },
         },
         extensions::filters::network::http_connection_manager::v3::{
-            http_connection_manager::{CodecType as EnvoyCodecType, RouteSpecifier as EnvoyRouteSpecifier},
             HttpConnectionManager as EnvoyHttpConnectionManager, Rds as EnvoyRds,
+            http_connection_manager::{CodecType as EnvoyCodecType, RouteSpecifier as EnvoyRouteSpecifier},
         },
     };
     use std::{collections::HashMap, str::FromStr, time::Duration};
 
     impl HttpConnectionManager {
-        fn ensure_corresponding_filter_exists(
+        pub(crate) fn ensure_corresponding_filter_exists(
             filter_override: (&CompactString, &FilterOverride),
             http_filters: &[HttpFilter],
         ) -> Result<(), GenericError> {
@@ -651,7 +693,7 @@ mod envoy_conversions {
                 // stat_prefix,
                 // http_filters,
                 add_user_agent,
-                tracing,
+                // tracing,
                 common_http_protocol_options,
                 http_protocol_options,
                 http2_protocol_options,
@@ -665,25 +707,25 @@ mod envoy_conversions {
                 request_headers_timeout,
                 drain_timeout,
                 delayed_close_timeout,
-                access_log,
+                // access_log,
                 access_log_flush_interval,
                 flush_access_log_on_new_request,
                 access_log_options,
-                use_remote_address,
-                xff_num_trusted_hops,
+                // use_remote_address,
+                // xff_num_trusted_hops,
                 original_ip_detection_extensions,
                 early_header_mutation_extensions,
                 internal_address_config,
-                skip_xff_append,
+                // skip_xff_append,
                 via,
-                generate_request_id,
-                preserve_external_request_id,
-                always_set_request_id_in_response,
+                // generate_request_id,
+                // preserve_external_request_id,
+                // always_set_request_id_in_response,
                 forward_client_cert_details,
                 set_current_client_cert_details,
                 proxy_100_continue,
                 represent_ipv4_remote_address_as_ipv4_mapped_ipv6,
-                upgrade_configs,
+                // upgrade_configs,
                 normalize_path,
                 merge_slashes,
                 path_with_escaped_slashes_action,
@@ -708,12 +750,17 @@ mod envoy_conversions {
                 );
             }
             let codec_type = codec_type.try_into().with_node("codec")?;
-            let route_specifier = route_specifier.try_into()?;
+            let route_specifier = RouteSpecifier::try_from(route_specifier)?;
             let request_timeout = request_timeout
                 .map(duration_from_envoy)
                 .transpose()
                 .map_err(|_| GenericError::from_msg("failed to convert into Duration"))
                 .with_node("request_timeout")?;
+            let enabled_upgrades = upgrade_configs
+                .iter()
+                .filter(|upgrade_config| upgrade_config.enabled.map(|enabled| enabled.value).unwrap_or(true))
+                .map(|upgrade_config| upgrade_config.upgrade_type.clone().try_into())
+                .collect::<Result<Vec<UpgradeType>, _>>()?;
             let mut http_filters: Vec<SupportedEnvoyHttpFilter> = convert_non_empty_vec!(http_filters)?;
             match http_filters.pop() {
                 Some(SupportedEnvoyHttpFilter { filter: SupportedEnvoyFilter::Router(rtr), name, disabled: false }) => {
@@ -754,7 +801,34 @@ mod envoy_conversions {
                     }
                 }
             }
-            Ok(Self { codec_type, http_filters, route_specifier, request_timeout })
+
+            let access_log =
+                access_log.iter().map(|al| AccessLog::try_from(al.clone())).collect::<Result<Vec<_>, _>>()?;
+
+            let xff_settings = XffSettings {
+                use_remote_address: use_remote_address.map(|v| v.value).unwrap_or(false),
+                skip_xff_append,
+                xff_num_trusted_hops,
+            };
+
+            let tracing = tracing
+                .map(TryInto::try_into)
+                .transpose()
+                .map_err(|_| GenericError::from_msg("failed to convert tracing object"))?;
+
+            Ok(Self {
+                codec_type,
+                http_filters,
+                enabled_upgrades,
+                route_specifier,
+                request_timeout,
+                access_log,
+                xff_settings,
+                generate_request_id: generate_request_id.map(|v| v.value).unwrap_or(true),
+                preserve_external_request_id,
+                always_set_request_id_in_response,
+                tracing,
+            })
         }
     }
 
@@ -777,19 +851,31 @@ mod envoy_conversions {
         }
     }
 
+    impl TryFrom<String> for UpgradeType {
+        type Error = GenericError;
+        fn try_from(s: String) -> Result<Self, Self::Error> {
+            match s.to_lowercase().as_str() {
+                "websocket" => Ok(UpgradeType::Websocket),
+                "connect" => Err(GenericError::from_msg("Http CONNECT upgrades are not currently supported")),
+                s => Err(GenericError::from_msg(format!("Unsupported upgrade type [{s}]"))),
+            }
+        }
+    }
+
+    // In the original Protobuf specification, this enum is `oneof` rds, route_config or scoped_routes,
+    // this is why the name of the field is manually added in case an error happens.
     impl TryFrom<Option<EnvoyRouteSpecifier>> for RouteSpecifier {
         type Error = GenericError;
         fn try_from(envoy: Option<EnvoyRouteSpecifier>) -> Result<Self, Self::Error> {
             Ok(match envoy {
-                Some(EnvoyRouteSpecifier::Rds(rds)) => {
-                    Self::Rds(RdsSpecifier::try_from(rds).map_err(|e| e.with_node("rds"))?)
-                },
+                Some(EnvoyRouteSpecifier::Rds(rds)) => Self::Rds(RdsSpecifier::try_from(rds).with_node("rds")?),
                 Some(EnvoyRouteSpecifier::RouteConfig(envoy)) => {
                     Self::RouteConfig(envoy.try_into().with_node("route_config")?)
                 },
                 Some(EnvoyRouteSpecifier::ScopedRoutes(_)) => {
-                    return Err(GenericError::unsupported_variant("ScopedRoutes"))
+                    return Err(GenericError::unsupported_variant("ScopedRoutes"));
                 },
+
                 None => return Err(GenericError::MissingField("rds or route_config")),
             })
         }
@@ -1076,6 +1162,7 @@ mod envoy_conversions {
                 action,
             } = envoy;
             unsupported_field!(
+                //name,
                 // r#match,
                 metadata,
                 decorator,

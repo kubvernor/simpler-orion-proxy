@@ -86,7 +86,7 @@ mod envoy_conversions {
                     router::v3::Router as EnvoyRouter,
                 },
                 network::http_connection_manager::v3::{
-                    http_filter::ConfigType as EnvoyConfigType, HttpFilter as EnvoyHttpFilter,
+                    HttpFilter as EnvoyHttpFilter, http_filter::ConfigType as EnvoyConfigType,
                 },
             },
         },

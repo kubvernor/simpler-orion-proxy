@@ -1,0 +1,61 @@
+services:
+  orion:
+    image: kmesh-orion:latest
+    build: .
+    command: --config orion-runtime.yaml
+    volumes:
+      - type: bind
+        source: orion-runtime.yaml
+        target: /orion-runtime.yaml
+        read_only: true
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "50051:50051"
+
+  backend-1:
+    image: gcr.io/k8s-staging-gateway-api/echo-basic:latest
+    hostname: backend-1
+    environment:
+      HTTP_PORT: 4000
+      H2C_PORT: 4001
+      POD_NAME: backend-1
+      SERVICE: backend
+    ports:
+      - "4000"      
+      - "4001"
+  backend-2:
+      image: gcr.io/k8s-staging-gateway-api/echo-basic:latest      
+      hostname: backend-2
+      environment:
+        HTTP_PORT: 4000
+        H2C_PORT: 4001
+        POD_NAME: backend-2
+        SERVICE: backend
+      ports:
+      - "4000"      
+      - "4001"            
+  backend-h2-1:
+    image: gcr.io/k8s-staging-gateway-api/echo-basic:latest
+    hostname: backend-h2-1
+    environment:
+      HTTP_PORT: 4000
+      H2C_PORT: 4001
+      POD_NAME: backend-h2-1
+      SERVICE: backend-h2
+    ports:
+      - "4000"      
+      - "4001"
+  backend-h2-2:
+      image: gcr.io/k8s-staging-gateway-api/echo-basic:latest      
+      hostname: backend-h2-2
+      environment:
+        HTTP_PORT: 4000
+        H2C_PORT: 4001
+        POD_NAME: backend-h2-2
+        SERVICE: backend-h2
+      ports:
+      - "4000"      
+      - "4001"            
+networks:
+  orion-net:
