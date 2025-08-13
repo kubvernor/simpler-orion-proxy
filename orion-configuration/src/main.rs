@@ -19,12 +19,12 @@
 //
 //
 
-use orion_configuration::{config::Config, options::Options, Result};
-use orion_error::ResultExtension;
+use orion_configuration::{Result, config::Config, options::Options};
+use orion_error::Context;
 
 fn main() -> Result<()> {
     let config = Config::new(&Options::from_path("bootstrap.yaml"))?;
-    let yaml = serde_yaml::to_string(&config).context("failed to serialize orion config")?;
+    let yaml = serde_yaml::to_string(&config).with_context_msg("failed to serialize orion config")?;
     std::fs::write("orion.yaml", yaml.as_bytes())?;
     println!("{yaml}");
     Ok(())

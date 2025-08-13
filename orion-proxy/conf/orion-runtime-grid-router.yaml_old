@@ -1,0 +1,124 @@
+#                                       /proxy/    ---> (cluster1) 192.168.2.10:80
+#                                      |
+#  http request ---> 192.168.1.1:8080 -|
+#                                      |
+#                                       (default)  ---> (cluster2) 127.0.0.1:80
+# 
+#                                       /proxy/    ---> (cluster3) 192.168.2.10:81 (h2)
+#                                      |
+#  http request ---> 192.168.1.1:8081 -|
+#                                      |
+#                                      / 404
+#  
+
+runtime:
+  num_cpus: 2
+  num_runtimes: 2
+  event_interval: 31          # estimated optimal value
+  global_queue_interval: null   # default
+  max_io_events_per_tick: null  # default
+
+logging:
+  log_level: "debug"
+  log_directory: "."
+#  log_file: "orion.log"
+
+envoy_bootstrap:
+  node: 
+    id: "kfjdkfj"
+    cluster : "kdjfkj"
+  static_resources:
+    listeners:
+      - name: listener_http
+        address:
+          socket_address: { address: 127.0.0.1, port_value: 8000 }
+        filterChains:
+          - name: filter_chain_http
+            filter_chain_match:
+              destination_port: 8000
+            filters:
+              - name: http_gateway
+                typedConfig:
+                  "@type": type.googleapis.com/envoy.extensions.filters.network.gridrouter_connection_manager.v3.GridRouterConnectionManager
+                  statPrefix: ingress_http
+                  codecType: HTTP1
+                  httpFilters:
+                    - name: envoy.filters.http.router
+                      typedConfig:
+                        "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                        start_child_span: false
+                  gridRouterRouteConfig:
+                    name: grid_router_route
+                    virtual_hosts:
+                      - name: grid1
+                        domains: ["*"]
+                        routes:
+                          - name: "grid1-route-1"
+                            match:
+                              prefix: "/rr"
+                            route:
+                              name: "route_action_blah"
+                              default_cluster : "cluster_http_tenant_1"
+                              partition_keys:
+                                - location : Headers                                  
+                                  name : "authorization"
+                                  value_extraction_path : "tenant_id/key/blah"
+                                  decoder: Base64
+                                - location : Headers
+                                  name : "x-auth-x"
+                                  value_extraction_path : "tenant_id/key/blah"                                                                    
+                              primary_cluster_selector: 
+                                - cluster_name : "cluster_http_tenant_2"
+                                  partition_values: ["tenant_1", "tenant_2"]
+                                - cluster_name : "cluster_http_tenant_3"
+                                  partition_values: ["tenant_3", "tenant_4"]                              
+                              hash_selectors:
+                                routes:                                  
+                                  - hash_algorithm : "default"
+                                    mod : 100
+                                    seed : "dkfjkfj"                                    
+                                    mappings:                                 
+                                      - cluster_name : "cluster_http_tenant_4"
+                                        hash_value: 1234454954985
+                              
+                              
+                                                                                                                         
+    clusters:
+      - name: cluster_http_tenant_1
+        connect_timeout: 0.25s
+        type: STATIC
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          endpoints:
+            - lb_endpoints:
+                - endpoint:
+                    address:
+                      socket_address:
+                        address: 127.0.0.1
+                        port_value: 4001
+                - endpoint:
+                    address:
+                      socket_address:
+                        address: 127.0.0.1
+                        port_value: 4002
+      - name: cluster_http_tenant_2
+        connect_timeout: 0.25s
+        type: STATIC
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          endpoints:
+            - lb_endpoints:
+                - endpoint:
+                    address:
+                      socket_address:
+                        address: 127.0.0.1
+                        port_value: 4003
+                - endpoint:
+                    address:
+                      socket_address:
+                        address: 127.0.0.1
+                        port_value: 4004
+                        
+
+
+

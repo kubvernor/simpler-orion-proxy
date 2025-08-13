@@ -78,7 +78,7 @@ enum ExplicitProtocolOptions {
 
 impl Default for ExplicitProtocolOptions {
     fn default() -> Self {
-        Self::Http1(Http1ProtocolOptions::default())
+        Self::Http1(Http1ProtocolOptions)
     }
 }
 
@@ -101,7 +101,7 @@ pub struct Http2ProtocolOptions {
 
 impl Http2ProtocolOptions {
     pub fn max_concurrent_streams(&self) -> Option<usize> {
-        self.max_concurrent_streams.map(usize::from)
+        self.max_concurrent_streams
     }
     pub fn initial_stream_window_size(&self) -> Option<u32> {
         self.initial_stream_window_size.map(u32::from)
@@ -135,12 +135,12 @@ mod envoy_conversions {
                 HttpProtocolOptions as EnvoyCommonHttpProtocolOptions, KeepaliveSettings,
             },
             extensions::upstreams::http::v3::{
+                HttpProtocolOptions as EnvoyHttpProtocolOptions,
                 http_protocol_options::{
-                    explicit_http_config::ProtocolConfig as EnvoyProtocolConfig,
                     ExplicitHttpConfig as EnvoyExplicitHttpConfig,
                     UpstreamProtocolOptions as EnvoyUpstreamProtocolOptions,
+                    explicit_http_config::ProtocolConfig as EnvoyProtocolConfig,
                 },
-                HttpProtocolOptions as EnvoyHttpProtocolOptions,
             },
         },
         google::protobuf::Any,
@@ -239,10 +239,10 @@ mod envoy_conversions {
             let common = common_http_protocol_options.map(CommonHttpOptions::try_from).transpose()?.unwrap_or_default();
             let (codec, http1_options, http2_options) = match upstream_protocol_options {
                 UpstreamHttpProtocolOptions::Explicit(ExplicitProtocolOptions::Http1(http1)) => {
-                    (Codec::Http1, http1, Default::default())
+                    (Codec::Http1, http1, Http2ProtocolOptions::default())
                 },
                 UpstreamHttpProtocolOptions::Explicit(ExplicitProtocolOptions::Http2(http2)) => {
-                    (Codec::Http2, Default::default(), http2)
+                    (Codec::Http2, Http1ProtocolOptions, http2)
                 },
             };
 
@@ -298,7 +298,7 @@ mod envoy_conversions {
                 send_fully_qualified_url,
                 use_balsa_parser,
                 allow_custom_methods,
-                ignore_http_11_upgrade,
+                ignore_http_11_upgrade
             } = value;
             unsupported_field!(
                 allow_absolute_url,

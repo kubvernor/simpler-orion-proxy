@@ -21,12 +21,12 @@
 use std::{fmt::Debug, sync::Arc};
 
 use rand::{
+    SeedableRng,
     distributions::{Distribution, WeightedIndex},
     rngs::SmallRng,
-    SeedableRng,
 };
 
-use super::{default_balancer::LbItem, Balancer, WeightedEndpoint};
+use super::{Balancer, WeightedEndpoint, default_balancer::LbItem};
 
 #[derive(Debug, Clone)]
 pub struct RandomBalancer<E> {
@@ -36,6 +36,7 @@ pub struct RandomBalancer<E> {
 }
 
 impl<E> RandomBalancer<E> {
+    #[allow(clippy::expect_used)]
     pub fn new(items: impl IntoIterator<Item = LbItem<E>>) -> Self {
         let rng = SmallRng::from_rng(rand::thread_rng()).expect("RNG must be valid");
         RandomBalancer::new_with_rng(items, rng)
@@ -87,11 +88,11 @@ impl<E: WeightedEndpoint> FromIterator<Arc<E>> for RandomBalancer<E> {
 mod test {
     use std::sync::Arc;
 
-    use rand::{rngs::SmallRng, SeedableRng};
+    use rand::{SeedableRng, rngs::SmallRng};
 
     use crate::clusters::balancers::{
-        random::{LbItem, RandomBalancer},
         Balancer,
+        random::{LbItem, RandomBalancer},
     };
 
     #[test]

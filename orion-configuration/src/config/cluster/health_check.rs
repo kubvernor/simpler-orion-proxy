@@ -21,10 +21,10 @@
 use crate::config::common::is_default;
 use compact_str::CompactString;
 use http::{
-    uri::{Authority, PathAndQuery},
     Method,
+    uri::{Authority, PathAndQuery},
 };
-use serde::{ser::SerializeStruct, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser::SerializeStruct};
 use std::{ops::Range, str::FromStr, time::Duration};
 
 pub use super::http_protocol_options::Codec;
@@ -197,6 +197,7 @@ pub struct HttpHealthCheck {
     pub path: Option<PathAndQuery>,
 }
 
+#[allow(clippy::single_range_in_vec_init)]
 fn default_expected_statuses() -> Vec<Range<u16>> {
     vec![200..201]
 }
@@ -206,6 +207,7 @@ fn is_default_expected_statuses(value: &Vec<Range<u16>>) -> bool {
 }
 
 impl Default for HttpHealthCheck {
+    #[allow(clippy::single_range_in_vec_init)]
     fn default() -> Self {
         Self {
             http_version: Codec::Http1,
@@ -261,22 +263,22 @@ pub struct GrpcHealthCheck {
 mod envoy_conversions {
     #![allow(deprecated)]
     use super::{
-        default_expected_statuses, Codec, GrpcHealthCheck, HealthCheck, HealthCheckProtocol, HttpHealthCheck,
-        TcpHealthCheck,
+        Codec, GrpcHealthCheck, HealthCheck, HealthCheckProtocol, HttpHealthCheck, TcpHealthCheck,
+        default_expected_statuses,
     };
     use crate::config::{common::*, util::duration_from_envoy};
     use http::{
-        uri::{Authority, PathAndQuery},
         Method,
+        uri::{Authority, PathAndQuery},
     };
     use orion_data_plane_api::envoy_data_plane_api::envoy::{
         config::core::v3::{
-            health_check::{
-                payload::Payload as EnvoyPayload, GrpcHealthCheck as EnvoyGrpcHealthCheck,
-                HealthChecker as EnvoyHealthChecker, HttpHealthCheck as EnvoyHttpHealthCheck,
-                Payload as EnvoyPayloadOption, TcpHealthCheck as EnvoyTcpHealthCheck,
-            },
             HealthCheck as EnvoyHealthCheck, RequestMethod,
+            health_check::{
+                GrpcHealthCheck as EnvoyGrpcHealthCheck, HealthChecker as EnvoyHealthChecker,
+                HttpHealthCheck as EnvoyHttpHealthCheck, Payload as EnvoyPayloadOption,
+                TcpHealthCheck as EnvoyTcpHealthCheck, payload::Payload as EnvoyPayload,
+            },
         },
         r#type::v3::{CodecClientType, Int64Range},
     };
@@ -329,8 +331,8 @@ mod envoy_conversions {
                 event_service,
                 always_log_health_check_failures,
                 tls_options,
-                transport_socket_match_criteria, // health_checker
-                always_log_health_check_success
+                transport_socket_match_criteria,
+                always_log_health_check_success // health_checker
             )?;
             let timeout = duration_from_envoy(required!(timeout)?).map_err(|e| {
                 GenericError::from_msg_with_cause("failed to convert {timeout} to std::time::Duration", e)
@@ -349,6 +351,7 @@ mod envoy_conversions {
                     .with_node("interval_jitter")
             })?;
             let interval_jitter_percent = {
+                #[allow(clippy::cast_precision_loss)]
                 let as_float = interval_jitter_percent as f32;
                 if !as_float.is_finite() || as_float > 1.0 || as_float.is_sign_negative() {
                     Err(GenericError::from_msg(format!(
@@ -431,6 +434,7 @@ mod envoy_conversions {
                 } else if start < 100 || end >= 600 {
                     Err(GenericError::from_msg("invalid range [{start},{end}). Range has to be within [100,600)."))
                 } else {
+                    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
                     Ok((start as u16)..(end as u16))
                 }
             })
@@ -523,7 +527,7 @@ mod envoy_conversions {
 
         payload.map(|payload| match payload {
             EnvoyPayload::Text(text) => try_convert_text_payload(&text),
-            EnvoyPayload::Binary(binary) => Ok(binary.clone()),
+            EnvoyPayload::Binary(binary) => Ok(binary),
         })
     }
 
@@ -568,8 +572,8 @@ mod envoy_conversions {
         type Error = GenericError;
 
         fn try_from(value: EnvoyTcpHealthCheck) -> Result<Self, Self::Error> {
-            let EnvoyTcpHealthCheck { send, receive, proxy_protocol_config: _ } = value;
-
+            let EnvoyTcpHealthCheck { send, receive, proxy_protocol_config } = value;
+            unsupported_field!(proxy_protocol_config)?;
             Ok(TcpHealthCheck {
                 send: send.and_then(try_convert_payload).transpose()?,
                 receive: receive.into_iter().filter_map(try_convert_payload).collect::<Result<Vec<_>, _>>()?,

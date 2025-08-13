@@ -23,7 +23,7 @@
 
 use std::{io, net::SocketAddr, sync::OnceLock};
 
-use hickory_resolver::{name_server::TokioConnectionProvider, TokioAsyncResolver};
+use hickory_resolver::{TokioAsyncResolver, name_server::TokioConnectionProvider};
 
 static GLOBAL_DNS_RESOLVER: OnceLock<TokioAsyncResolver> = OnceLock::new();
 
@@ -38,7 +38,7 @@ pub async fn resolve(host: &str, port: u16) -> io::Result<SocketAddr> {
             {
                 match TokioAsyncResolver::from_system_conf(TokioConnectionProvider::default()) {
                     Ok(resolver) => resolver,
-                    Err(err) => panic!("Could not initialize the DNS resolver: {err}"),
+                    Err(err) => unimplemented!("Could not initialize the DNS resolver: {err}"),
                 }
             }
             #[cfg(not(any(unix, windows)))]

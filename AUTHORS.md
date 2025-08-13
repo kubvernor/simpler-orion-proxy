@@ -6,6 +6,8 @@
 |Francesco Ciaccia|  Huawei Ireland Research Lab|francesco.ciaccia1@huawei-partners.com|
 |Nicola Bonelli |  Huawei Ireland Research Lab|nicola.bonelli@huawei-partners.com|
 |Wang Ruize | Huawei| wangruize1@huawei.com|
+|Xie Liwei | Huawei | xieliwei5@huawei.com|
+
 
 
 ### Past

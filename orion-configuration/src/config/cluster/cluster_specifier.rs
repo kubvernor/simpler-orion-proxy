@@ -20,13 +20,24 @@
 
 use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
-use std::num::NonZeroU32;
+use std::{borrow::Cow, num::NonZeroU32};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum ClusterSpecifier {
     Cluster(CompactString),
     WeightedCluster(Vec<WeightedClusterSpecifier>),
+}
+
+impl ClusterSpecifier {
+    pub fn name(&self) -> Cow<'_, str> {
+        match self {
+            ClusterSpecifier::Cluster(name) => name.into(),
+            ClusterSpecifier::WeightedCluster(clusters) => {
+                clusters.iter().map(|c| c.cluster.as_str()).collect::<Vec<_>>().join(",").into()
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -43,12 +54,12 @@ mod envoy_conversions {
     use compact_str::CompactString;
     use orion_data_plane_api::envoy_data_plane_api::envoy::{
         config::route::v3::{
-            route_action::ClusterSpecifier as EnvoyClusterSpecifier,
-            weighted_cluster::ClusterWeight as EnvoyClusterWeight, WeightedCluster as EnvoyWeightedCluster,
+            WeightedCluster as EnvoyWeightedCluster, route_action::ClusterSpecifier as EnvoyClusterSpecifier,
+            weighted_cluster::ClusterWeight as EnvoyClusterWeight,
         },
         extensions::filters::network::tcp_proxy::v3::tcp_proxy::{
-            weighted_cluster::ClusterWeight as EnvoyTcpClusterWeight, ClusterSpecifier as EnvoyTcpClusterSpecifier,
-            WeightedCluster as EnvoyTcpWeightedCluster,
+            ClusterSpecifier as EnvoyTcpClusterSpecifier, WeightedCluster as EnvoyTcpWeightedCluster,
+            weighted_cluster::ClusterWeight as EnvoyTcpClusterWeight,
         },
     };
 

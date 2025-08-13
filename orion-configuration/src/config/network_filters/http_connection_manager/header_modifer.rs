@@ -18,7 +18,7 @@
 //
 //
 
-use super::{is_default, GenericError};
+use super::{GenericError, is_default};
 use http::{HeaderMap, HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -133,8 +133,10 @@ impl TryFrom<(String, String)> for HeaderKeyValue {
 mod tests {
     use super::*;
     use crate::config::network_filters::http_connection_manager::header_modifer::HeaderKeyValue;
-    use http::header::{COOKIE, LOCATION, USER_AGENT};
-    use http::{HeaderMap, HeaderValue};
+    use http::{
+        HeaderMap, HeaderValue,
+        header::{COOKIE, LOCATION, USER_AGENT},
+    };
 
     #[test]
     fn test_header_mutation_append_if_exists_or_add() {
@@ -349,8 +351,8 @@ mod envoy_conversions {
     use super::{HeaderAppendAction, HeaderKeyValue, HeaderValueOption};
     use crate::config::common::*;
     use orion_data_plane_api::envoy_data_plane_api::envoy::config::core::v3::{
-        header_value_option::HeaderAppendAction as EnvoyHeaderAppendAction, HeaderValue as EnvoyHeaderValue,
-        HeaderValueOption as EnvoyHeaderValueOption,
+        HeaderValue as EnvoyHeaderValue, HeaderValueOption as EnvoyHeaderValueOption,
+        header_value_option::HeaderAppendAction as EnvoyHeaderAppendAction,
     };
 
     impl TryFrom<EnvoyHeaderValueOption> for HeaderValueOption {

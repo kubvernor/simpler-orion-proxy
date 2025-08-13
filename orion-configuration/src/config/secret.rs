@@ -23,11 +23,11 @@ use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Secret {
-    name: CompactString,
+    pub name: CompactString,
     #[serde(flatten)]
-    kind: Type,
+    pub kind: Type,
 }
 
 impl Secret {
@@ -38,9 +38,13 @@ impl Secret {
     pub fn kind(&self) -> &Type {
         &self.kind
     }
+
+    pub fn kind_mut(&mut self) -> &mut Type {
+        &mut self.kind
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Type {
     TlsCertificate(TlsCertificate),
@@ -84,8 +88,13 @@ impl TlsCertificate {
     pub fn certificate_chain(&self) -> &DataSource {
         &self.certificate_chain
     }
+
     pub fn private_key(&self) -> &DataSource {
         &self.private_key
+    }
+
+    pub fn private_key_mut(&mut self) -> &mut DataSource {
+        &mut self.private_key
     }
 }
 
@@ -96,8 +105,8 @@ mod envoy_conversions {
     use crate::config::common::*;
     use compact_str::CompactString;
     use orion_data_plane_api::envoy_data_plane_api::envoy::extensions::transport_sockets::tls::v3::{
-        secret::Type as EnvoyType, CertificateValidationContext as EnvoyCertificateValidationContext,
-        Secret as EnvoySecret, TlsCertificate as EnvoyTlsCertificate,
+        CertificateValidationContext as EnvoyCertificateValidationContext, Secret as EnvoySecret,
+        TlsCertificate as EnvoyTlsCertificate, secret::Type as EnvoyType,
     };
 
     impl TryFrom<EnvoySecret> for Secret {
