@@ -7,6 +7,8 @@
 ## Introduction
 
 Orion Proxy is a high performance and memory safe implementation of popular [Envoy Proxy](https://www.envoyproxy.io/). Orion Proxy is implemented in Rust using high-quality open source components. 
+Orion Proxy has been mostly implemented at Huawei Ireland Research Center and released to open source at [Gitee Orion Proxy](https://gitee.com/orion-proxy/orion)
+
 
 ### Key features
 
